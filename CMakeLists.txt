@@ -52,6 +52,7 @@ install(
 
 install(
   PROGRAMS
+    scripts/open3d_archive_player
     scripts/open3d_general_recorder
     scripts/open3d_realsense_recorder
     scripts/open3d_reconstruction
