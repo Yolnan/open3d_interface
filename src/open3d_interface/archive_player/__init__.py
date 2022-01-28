@@ -129,8 +129,10 @@ def main():
             print("Current index:", current_index)
             camera_intrinsic_msg.header.stamp = curr_time
             camera_info_pub.publish(camera_intrinsic_msg)
-            image_message_color = bridge.cv2_to_imgmsg(np.asarray(color_img), encoding='bgr8')
+            image_message_color = Image()
+            image_message_color = bridge.cv2_to_imgmsg(np.asarray(color_img), encoding='rgb8')
             image_message_color.header.stamp = curr_time
+            image_message_depth = Image()
             image_message_depth = bridge.cv2_to_imgmsg(np.asarray(depth_img), encoding='16UC1')
             image_message_depth.header.stamp = curr_time
             rgb_pub.publish(image_message_color)
