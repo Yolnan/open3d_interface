@@ -106,7 +106,7 @@ def startRecordingCallback(req):
 
   # We will not display the background of objects more than
   #  clipping_distance_in_meters meters away
-  clipping_distance_in_meters = 3  # 3 meter
+  clipping_distance_in_meters = 6  # 3 meter
   clipping_distance = clipping_distance_in_meters / depth_scale
 
   # Create an align object

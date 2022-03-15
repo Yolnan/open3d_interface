@@ -183,7 +183,7 @@ def stopYakReconstructionCallback(req):
   else:
     cropped_mesh = mesh
 
-  mesh_filepath = join(req.results_directory, "integrated.ply")
+  mesh_filepath = join(req.results_directory, "results_mesh.ply")
   o3d.io.write_triangle_mesh(mesh_filepath, cropped_mesh, False, True)
   mesh_msg = meshToRos(cropped_mesh)
   mesh_msg.header.stamp = rospy.get_rostime()
@@ -194,7 +194,7 @@ def stopYakReconstructionCallback(req):
   if (req.archive_directory != ""):
     rospy.loginfo(rospy.get_caller_id() + ": Archiving data to " + req.archive_directory)
     archiveData(req.archive_directory)
-    archive_mesh_filepath = join(req.archive_directory, "integrated.ply")
+    archive_mesh_filepath = join(req.archive_directory, "results_mesh.ply")
     o3d.io.write_triangle_mesh(archive_mesh_filepath, mesh, False, True)
 
   return StopYakReconstructionResponse(True, mesh_filepath)

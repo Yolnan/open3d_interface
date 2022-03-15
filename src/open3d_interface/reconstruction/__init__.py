@@ -123,7 +123,7 @@ def runTSDFReconstructionCallback(req):
   if req.debug_mode:
       o3d.visualization.draw_geometries([mesh])
 
-  mesh_name = join(req.path_dataset, "integrated.ply")
+  mesh_name = join(req.path_dataset, "results_mesh.ply")
   o3d.io.write_triangle_mesh(mesh_name, mesh, False, True)
 
   return RunTSDFReconstructionResponse(True, mesh_name)
@@ -194,7 +194,7 @@ def runReconstructionSystemCallback(req):
   print("- Total               %s" % datetime.timedelta(seconds=sum(times)))
   sys.stdout.flush()
 
-  return RunReconstructionSystemResponse(True, req.path_dataset + "/scene/integrated.ply")
+  return RunReconstructionSystemResponse(True, req.path_dataset + "/scene/results_mesh.ply")
 
 def main():
   rospy.init_node('open3d_reconstruction', anonymous=True)
