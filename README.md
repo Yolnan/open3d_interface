@@ -3,7 +3,9 @@
 ## Example Usage
 
 Launch reconstruction node
-`roslaunch open3d_interface yak.launch depth_image_topic:=/camera/depth_image/raw color_image_topic:=/camera/color_image/raw camera_info_topic:=/camera/camera_info`
+```
+roslaunch open3d_interface yak.launch depth_image_topic:=/camera/depth_image/raw color_image_topic:=/camera/color_image/raw camera_info_topic:=/camera/camera_info
+```
 
 Call service to start reconstruction
 ```
