@@ -7,6 +7,7 @@ import rclpy
 from rclpy.node import Node
 from tf2_ros.buffer import Buffer
 from tf2_ros import TransformListener
+# from rclpy.duration import Duration
 import open3d as o3d
 import numpy as np
 
@@ -145,6 +146,7 @@ class Open3dYak(Node):
         make_clean_folder(path_color)
         make_clean_folder(path_pose)
 
+        self.get_logger().info("number of color images: " + str(len(self.color_images)))
         for s in range(len(self.color_images)):
             # Save your OpenCV2 image as a jpeg
             o3d.io.write_image("%s/%06d.png" % (path_depth, s), self.depth_images[s])
@@ -292,7 +294,7 @@ class Open3dYak(Node):
                 if (self.frame_count > 30):
                     data = self.sensor_data.popleft()
                     try:
-                        gm_tf_stamped = self.buffer.lookup_transform(self.relative_frame, self.tracking_frame, data[2])
+                        gm_tf_stamped = self.buffer.lookup_transform(self.relative_frame, self.tracking_frame, time=data[2])
                     except Exception as e:
                         self.get_logger().error("Failed to get transform: " + str(e))
 
