@@ -8,6 +8,7 @@ from rclpy.node import Node
 from tf2_ros.buffer import Buffer
 from tf2_ros import TransformListener
 # from rclpy.duration import Duration
+from sensor_msgs.msg import JointState
 import open3d as o3d
 import numpy as np
 
@@ -57,6 +58,8 @@ class Open3dYak(Node):
         self.relative_frame = ''
         self.translation_distance = 0.05  # 5cm
         self.rotational_distance = 0.01  # Quaternion Distance
+        self.last_joint_state_time = 0.0    # secs, 
+        self.time_tolerance = 1           # secs, max allowable time between /robot_joint_state msg and camera msg
 
         ####################################################################
         # See Open3d function create_from_color_and_depth for more details #
@@ -114,11 +117,12 @@ class Open3dYak(Node):
         except:
             self.get_logger().info("Failed to load slop parameter")
         allow_headerless = False
-
+    
         self.get_logger().info("depth_image_topic - " + self.depth_image_topic)
         self.get_logger().info("color_image_topic - " + self.color_image_topic)
         self.get_logger().info("camera_info_topic - " + self.camera_info_topic)
 
+        self.joint_state_sub = self.create_subscription(JointState,'/robot_joint_states', self.jointStateCallback, 1)
         self.depth_sub = Subscriber(self, Image, self.depth_image_topic)
         self.color_sub = Subscriber(self, Image, self.color_image_topic)
         self.tss = ApproximateTimeSynchronizer([self.depth_sub, self.color_sub], self.cache_count, self.slop,
@@ -135,6 +139,9 @@ class Open3dYak(Node):
                                                self.stopYakReconstructionCallback)
 
         self.tsdf_volume_pub = self.create_publisher(Marker, "tsdf_volume", 10)
+
+    def jointStateCallback(self, joint_state_msg):
+        self.last_joint_state_time = joint_state_msg.header.stamp.sec
 
     def archiveData(self, path_output):
         path_depth = join(path_output, "depth")
@@ -272,7 +279,7 @@ class Open3dYak(Node):
             self.get_logger().info("Archiving data to " + req.archive_directory)
             self.archiveData(req.archive_directory)
             archive_mesh_filepath = join(req.archive_directory, "integrated.ply")
-            o3d.io.write_triangle_mesh(archive_mesh_filepath, mesh, False, True)
+            o3d.io.write_triangle_mesh(archive_mesh_filepath, cropped_mesh, False, True)
 
         self.get_logger().info("DONE")
         res.success = True
@@ -306,7 +313,7 @@ class Open3dYak(Node):
                     rot_dist = Quaternion.absolute_distance(Quaternion(self.prev_pose_rot), rgb_r_quat)
 
                     # TODO: Testing if this is a good practice, min jump to accept data
-                    if (tran_dist >= self.translation_distance) or (rot_dist >= self.rotational_distance):
+                    if ((abs(self.last_joint_state_time - rgb_image_msg.header.stamp.sec) < self.time_tolerance) and ((tran_dist >= self.translation_distance) or (rot_dist >= self.rotational_distance))):
                         self.prev_pose_tran = rgb_t
                         self.prev_pose_rot = rgb_r
                         rgb_pose = rgb_r_quat.transformation_matrix
@@ -342,7 +349,9 @@ class Open3dYak(Node):
                         else:
                             self.tsdf_integration_data.append([data[0], data[1], rgb_pose])
                             self.processed_frame_count += 1
-
+                    else:
+                        self.get_logger().info("last joint state received at: {}".format(self.last_joint_state_time))
+                        self.get_logger().info("last camera frame received at: {}".format(data[2].sec))
                 self.frame_count += 1
 
     def cameraInfoCallback(self, camera_info):
