@@ -19,6 +19,7 @@ from tf2_ros.buffer import Buffer
 from tf2_ros import TransformListener
 import open3d as o3d
 import numpy as np
+from sensor_msgs.msg import JointState
 
 from pyquaternion import Quaternion
 from collections import deque
@@ -60,6 +61,8 @@ class IndustrialReconstruction(Node):
         self.relative_frame = ''
         self.translation_distance = 0.05  # 5cm
         self.rotational_distance = 0.01  # Quaternion Distance
+        self.last_joint_state_time = 0.0    # secs, 
+        self.time_tolerance = 1           # secs, max allowable time between /robot_joint_state msg and camera msg
 
         ####################################################################
         # See Open3d function create_from_color_and_depth for more details #
@@ -138,6 +141,11 @@ class IndustrialReconstruction(Node):
                                                self.stopReconstructionCallback)
 
         self.tsdf_volume_pub = self.create_publisher(Marker, "tsdf_volume", 10)
+
+        self.joint_state_sub = self.create_subscription(JointState,'/robot_joint_states', self.jointStateCallback, 1)
+
+    def jointStateCallback(self, joint_state_msg):
+        self.last_joint_state_time = joint_state_msg.header.stamp.sec
 
     def archiveData(self, path_output):
         path_depth = join(path_output, "depth")
@@ -274,7 +282,7 @@ class IndustrialReconstruction(Node):
             self.get_logger().info("Archiving data to " + req.archive_directory)
             self.archiveData(req.archive_directory)
             archive_mesh_filepath = join(req.archive_directory, "integrated.ply")
-            o3d.io.write_triangle_mesh(archive_mesh_filepath, mesh, False, True)
+            o3d.io.write_triangle_mesh(archive_mesh_filepath, cropped_mesh, False, True)
 
         self.get_logger().info("DONE")
         res.success = True
@@ -308,7 +316,7 @@ class IndustrialReconstruction(Node):
                     rot_dist = Quaternion.absolute_distance(Quaternion(self.prev_pose_rot), rgb_r_quat)
 
                     # TODO: Testing if this is a good practice, min jump to accept data
-                    if (tran_dist >= self.translation_distance) or (rot_dist >= self.rotational_distance):
+                    if ((abs(self.last_joint_state_time - rgb_image_msg.header.stamp.sec) < self.time_tolerance) and ((tran_dist >= self.translation_distance) or (rot_dist >= self.rotational_distance))):
                         self.prev_pose_tran = rgb_t
                         self.prev_pose_rot = rgb_r
                         rgb_pose = rgb_r_quat.transformation_matrix
